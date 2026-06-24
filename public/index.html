@@ -8,34 +8,79 @@
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f6fb; }
     .app { max-width: 760px; margin: 40px auto; padding: 24px; background: #fff; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.08); }
     h1 { margin-top: 0; }
-    textarea { width: 100%; min-height: 100px; font-size: 16px; padding: 12px; border: 1px solid #ccc; border-radius: 8px; resize: vertical; }
-    button { margin-top: 12px; padding: 12px 18px; font-size: 16px; border: none; border-radius: 8px; background: #2463ff; color: white; cursor: pointer; }
-    button:disabled { background: #999; cursor: not-allowed; }
-    pre { background: #f7f8fc; padding: 16px; border-radius: 10px; overflow-x: auto; }
+    textarea { width: 100%; min-height: 120px; font-size: 16px; padding: 12px; border: 1px solid #ccc; border-radius: 8px; resize: vertical; }
+    .prompt-list { margin: 20px 0; padding: 0; list-style: none; }
+    .prompt-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .prompt-text { padding: 12px 14px; background: #f7f8fc; border: 1px solid #e0e4ee; border-radius: 8px; font-family: Menlo, Monaco, Consolas, monospace; font-size: 14px; word-break: break-word; }
+    .prompt-item button { margin: 0; padding: 10px 14px; font-size: 14px; border: none; border-radius: 8px; background: #2463ff; color: #fff; cursor: pointer; transition: background .18s ease, transform .18s ease; }
+    .prompt-item button.copy { background: #0b72f0; }
+    .prompt-item button.copy:hover { background: #0855c2; transform: translateY(-1px); }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+    .controls button { flex: 1 1 160px; min-width: 140px; padding: 12px 16px; font-size: 15px; border: none; border-radius: 10px; cursor: pointer; transition: background .18s ease, transform .18s ease; }
+    .controls button#send { background: #2463ff; color: #fff; }
+    .controls button#send:hover { background: #1b4fce; transform: translateY(-1px); }
+    .controls button#reset { background: #ebebeb; color: #333; }
+    .controls button#reset:hover { background: #d6d6d6; transform: translateY(-1px); }
+    pre { background: #f7f8fc; padding: 16px; border-radius: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
     .help { margin-top: 16px; color: #555; }
   </style>
 </head>
 <body>
   <div class="app">
     <h1>LRE Chat Command UI</h1>
-    <p>Use natural prompts like:</p>
-    <ul>
-      <li><code>get runs</code></li>
-      <li><code>get run 1234</code></li>
-      <li><code>start run testId 456 testInstanceId 789</code></li>
-      <li><code>poll run 1234</code></li>
-      <li><code>get report 1234</code></li>
+    <p>Click a prompt to copy it, then paste it into your chat window.</p>
+    <ul class="prompt-list">
+      <li class="prompt-item">
+        <div class="prompt-text">get runs</div>
+        <button class="copy" data-prompt="get runs">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">get run 1234</div>
+        <button class="copy" data-prompt="get run 1234">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">start run testId 456 testInstanceId 789</div>
+        <button class="copy" data-prompt="start run testId 456 testInstanceId 789">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">poll run 1234</div>
+        <button class="copy" data-prompt="poll run 1234">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">get report 1234</div>
+        <button class="copy" data-prompt="get report 1234">Copy</button>
+      </li>
     </ul>
+
     <textarea id="prompt" placeholder="Type your command here..."></textarea>
-    <button id="send">Send command</button>
+    <div class="controls">
+      <button id="send">Send</button>
+      <button id="reset" class="reset">Reset</button>
+    </div>
     <div class="help" id="status"></div>
     <pre id="response"></pre>
   </div>
+
   <script>
     const promptEl = document.getElementById('prompt');
     const responseEl = document.getElementById('response');
     const statusEl = document.getElementById('status');
     const sendBtn = document.getElementById('send');
+    const resetBtn = document.getElementById('reset');
+    const copyButtons = document.querySelectorAll('.prompt-item button.copy');
+
+    copyButtons.forEach(button => {
+      button.addEventListener('click', async () => {
+        const prompt = button.dataset.prompt;
+        try {
+          await navigator.clipboard.writeText(prompt);
+          statusEl.textContent = `Copied: ${prompt}`;
+          promptEl.value = prompt;
+        } catch (err) {
+          statusEl.textContent = 'Copy failed. Please copy manually.';
+        }
+      });
+    });
 
     sendBtn.addEventListener('click', async () => {
       const prompt = promptEl.value.trim();
@@ -59,6 +104,13 @@
       } finally {
         sendBtn.disabled = false;
       }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      promptEl.value = '';
+      statusEl.textContent = '';
+      responseEl.textContent = '';
+      promptEl.focus();
     });
   </script>
 </body>
