@@ -50,15 +50,11 @@ This SDK knows how to:
 ### **2. The Local Server (`agent.js`)**
 This is the heart of the chat‑driven experience.
 
-`agent.js` exposes simple endpoints like:
+`agent.js` exposes a single natural-language command endpoint:
 
-- `/runs` → list recent runs  
-- `/run/:id` → get run details  
-- `/start-run` → start a test  
-- `/poll-run/:id` → wait until run finishes  
-- `/report/:id` → download report  
+- `/command` → accepts prompts like `get runs`, `get run 1234`, `start run <testId> <instanceId>`, `poll run <id>`, `get report <id>`
 
-Each endpoint returns **natural‑language responses**, so Copilot Chat can display them clearly.
+Each request is parsed and executed by the server, and the response is returned as JSON.
 
 This is what makes the experience feel like MCP.
 
@@ -74,7 +70,7 @@ You type natural language like:
 Copilot translates that into:
 
 ```
-POST http://localhost:3000/start-run
+POST http://localhost:3000/command
 ```
 
 The server runs the action, and Copilot shows the result in plain English.
@@ -192,24 +188,3 @@ It is lightweight, flexible, and easy to maintain.
 - Anyone who prefers natural‑language commands over scripts  
 
 ---
-
-## **Extending the System (Optional)**
-The server can easily be extended with endpoints like:
-
-- `/tests` → list tests  
-- `/instances/:testId` → list test instances  
-- `/failed-runs` → show failed runs  
-- `/start-and-wait` → start + poll + download report  
-
-These can be added anytime.
-
----
-
-If you want, I can also generate:
-
-- a **visual architecture diagram**  
-- a **quick‑start cheat sheet**  
-- a **manager‑friendly one‑page summary**  
-- a **troubleshooting section**  
-
-Just tell me what you want next.

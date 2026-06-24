@@ -1,11 +1,5 @@
 {
   "modelContextProtocol": {
-    "servers": {
-      "lre-agent": {
-        "command": "node",
-        "args": ["mcp-server.js"],
-        "disabled": false
-      }
-    }
+    "servers": {}
   }
 }

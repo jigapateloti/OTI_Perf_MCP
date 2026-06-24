@@ -2,15 +2,12 @@
   "name": "lre-26.1",
   "version": "1.0.0",
   "description": "LRE Chat-Based Automation SDK",
-  "main": "commands/commands.js",
+  "main": "agent.js",
   "type": "commonjs",
   "scripts": {
-    "commands": "node commands/commands.js",
-    "mcp": "node mcp-server.mjs",
-    "lre": "node lre-cli.js"
+    "start": "node agent.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
     "axios": "^1.18.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
