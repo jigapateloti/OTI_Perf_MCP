@@ -16,36 +16,46 @@ function parseCommand(prompt) {
     const text = (prompt || "").trim().toLowerCase();
     if (!text) return null;
 
-    const runIdMatch = text.match(/(?:run|id)\s*[:=]?\s*(\d+)/);
-    const testIdMatch = text.match(/test\s*id\s*[:=]?\s*(\d+)/);
+    const numbers = (text.match(/\d+/g) || []).map(Number);
+    const runId = numbers.length > 0 ? numbers[0] : null;
+    const testIdMatch = text.match(/test\s*id\s*[:=]?\s*(\d+)/) || text.match(/test\s*[:=]?\s*(\d+)/);
     const instanceIdMatch = text.match(/(?:test\s*instance\s*id|instance\s*id|instance)\s*[:=]?\s*(\d+)/);
     const hoursMatch = text.match(/(\d+)\s*(?:hours|hrs)/);
     const minutesMatch = text.match(/(\d+)\s*(?:minutes|mins)/);
+    const countMatch = text.match(/(?:last|recent|top)\s*(\d+)\s*runs?/);
 
-    if (/^(get|show|list|fetch).*(last|recent)?.*runs/.test(text) || /runs?$/.test(text) && !/report|start|poll/.test(text)) {
-        return { action: "getRuns" };
+    if (/(?:get|show|fetch|download)\b.*\b(report|run)\b/.test(text) && runId && /\breport\b/.test(text)) {
+        return { action: "getReport", runId };
     }
 
-    if (/^(get|show|fetch).*(run|details)/.test(text) && runIdMatch) {
-        return { action: "getRunDetails", runId: runIdMatch[1] };
+    if (/\b(report|download)\b.*\b(run)\b/.test(text) && runId) {
+        return { action: "getReport", runId };
     }
 
-    if (/(start|launch).*(run|test)/.test(text) && testIdMatch && instanceIdMatch) {
-        return {
-            action: "startRun",
-            testId: Number(testIdMatch[1]),
-            testInstanceId: Number(instanceIdMatch[1]),
-            hours: hoursMatch ? Number(hoursMatch[1]) : 0,
-            minutes: minutesMatch ? Number(minutesMatch[1]) : 30
-        };
+    if (/\b(poll|wait|status|check)\b/.test(text) && /\brun\b/.test(text) && runId) {
+        return { action: "pollRun", runId };
     }
 
-    if (/(poll|wait|status).*(run)/.test(text) && runIdMatch) {
-        return { action: "pollRun", runId: runIdMatch[1] };
+    if (/\b(start|launch)\b/.test(text) && /\b(run|test)\b/.test(text)) {
+        const testId = testIdMatch ? Number(testIdMatch[1]) : numbers[0] || null;
+        const instanceId = instanceIdMatch ? Number(instanceIdMatch[1]) : numbers[1] || numbers[0] || null;
+        if (testId && instanceId) {
+            return {
+                action: "startRun",
+                testId,
+                testInstanceId: instanceId,
+                hours: hoursMatch ? Number(hoursMatch[1]) : 0,
+                minutes: minutesMatch ? Number(minutesMatch[1]) : 30
+            };
+        }
     }
 
-    if (/(report|download).*(run)/.test(text) && runIdMatch) {
-        return { action: "getReport", runId: runIdMatch[1] };
+    if (/\b(get|show|fetch)\b/.test(text) && /\brun\b/.test(text) && runId && !/\b(report|download)\b/.test(text) && !/\b(start|launch|poll|wait|status)\b/.test(text)) {
+        return { action: "getRunDetails", runId };
+    }
+
+    if (/\b(get|show|fetch|list)\b/.test(text) && /\brun(s)?\b/.test(text) && !/\b(report|download)\b/.test(text) && !/\b(start|launch|poll|wait|status)\b/.test(text)) {
+        return { action: "getRuns", count: countMatch ? Number(countMatch[1]) : 10 };
     }
 
     return null;
