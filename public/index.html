@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LRE Chat Command UI</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f6fb; }
+    .app { max-width: 760px; margin: 40px auto; padding: 24px; background: #fff; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.08); }
+    h1 { margin-top: 0; }
+    textarea { width: 100%; min-height: 100px; font-size: 16px; padding: 12px; border: 1px solid #ccc; border-radius: 8px; resize: vertical; }
+    button { margin-top: 12px; padding: 12px 18px; font-size: 16px; border: none; border-radius: 8px; background: #2463ff; color: white; cursor: pointer; }
+    button:disabled { background: #999; cursor: not-allowed; }
+    pre { background: #f7f8fc; padding: 16px; border-radius: 10px; overflow-x: auto; }
+    .help { margin-top: 16px; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>LRE Chat Command UI</h1>
+    <p>Use natural prompts like:</p>
+    <ul>
+      <li><code>get runs</code></li>
+      <li><code>get run 1234</code></li>
+      <li><code>start run testId 456 testInstanceId 789</code></li>
+      <li><code>poll run 1234</code></li>
+      <li><code>get report 1234</code></li>
+    </ul>
+    <textarea id="prompt" placeholder="Type your command here..."></textarea>
+    <button id="send">Send command</button>
+    <div class="help" id="status"></div>
+    <pre id="response"></pre>
+  </div>
+  <script>
+    const promptEl = document.getElementById('prompt');
+    const responseEl = document.getElementById('response');
+    const statusEl = document.getElementById('status');
+    const sendBtn = document.getElementById('send');
+
+    sendBtn.addEventListener('click', async () => {
+      const prompt = promptEl.value.trim();
+      if (!prompt) return;
+      sendBtn.disabled = true;
+      statusEl.textContent = 'Sending command...';
+      responseEl.textContent = '';
+
+      try {
+        const res = await fetch('/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+        responseEl.textContent = JSON.stringify(data, null, 2);
+        statusEl.textContent = data.success ? 'Success' : 'Error';
+      } catch (err) {
+        statusEl.textContent = 'Request failed';
+        responseEl.textContent = err.message;
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

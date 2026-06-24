@@ -4,11 +4,160 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const { getAuthenticatedClient } = require("./sdk/sessionManager");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.static(path.join(__dirname, "public")));
+
+function parseCommand(prompt) {
+    const text = (prompt || "").trim().toLowerCase();
+    if (!text) return null;
+
+    const runIdMatch = text.match(/(?:run|id)\s*[:=]?\s*(\d+)/);
+    const testIdMatch = text.match(/test\s*id\s*[:=]?\s*(\d+)/);
+    const instanceIdMatch = text.match(/(?:test\s*instance\s*id|instance\s*id|instance)\s*[:=]?\s*(\d+)/);
+    const hoursMatch = text.match(/(\d+)\s*(?:hours|hrs)/);
+    const minutesMatch = text.match(/(\d+)\s*(?:minutes|mins)/);
+
+    if (/^(get|show|list|fetch).*(last|recent)?.*runs/.test(text) || /runs?$/.test(text) && !/report|start|poll/.test(text)) {
+        return { action: "getRuns" };
+    }
+
+    if (/^(get|show|fetch).*(run|details)/.test(text) && runIdMatch) {
+        return { action: "getRunDetails", runId: runIdMatch[1] };
+    }
+
+    if (/(start|launch).*(run|test)/.test(text) && testIdMatch && instanceIdMatch) {
+        return {
+            action: "startRun",
+            testId: Number(testIdMatch[1]),
+            testInstanceId: Number(instanceIdMatch[1]),
+            hours: hoursMatch ? Number(hoursMatch[1]) : 0,
+            minutes: minutesMatch ? Number(minutesMatch[1]) : 30
+        };
+    }
+
+    if (/(poll|wait|status).*(run)/.test(text) && runIdMatch) {
+        return { action: "pollRun", runId: runIdMatch[1] };
+    }
+
+    if (/(report|download).*(run)/.test(text) && runIdMatch) {
+        return { action: "getReport", runId: runIdMatch[1] };
+    }
+
+    return null;
+}
+
+// ------------------------------------------------------------
+// POST /command → Interpret a natural-language prompt and execute it
+// ------------------------------------------------------------
+app.post("/command", async (req, res) => {
+    try {
+        const prompt = req.body.prompt;
+        const parsed = parseCommand(prompt);
+
+        if (!parsed) {
+            return res.status(400).json({
+                success: false,
+                message: "Could not understand the command. Try: get runs, get run <id>, start run <testId> <instanceId>, poll run <id>, get report <id>."
+            });
+        }
+
+        const client = await getAuthenticatedClient();
+        let result;
+
+        switch (parsed.action) {
+            case "getRuns": {
+                const runs = await client.getRuns();
+                const last10 = runs.slice(0, 10);
+                result = {
+                    message: `Found ${runs.length} total runs. Showing the latest ${last10.length}.`,
+                    runs: last10.map(r => ({
+                        id: r.ID,
+                        state: r.RunState,
+                        testId: r.TestID,
+                        instanceId: r.TestInstanceID,
+                        startTime: r.StartTime,
+                        endTime: r.EndTime
+                    }))
+                };
+                break;
+            }
+
+            case "getRunDetails": {
+                const details = await client.getRunDetails(parsed.runId);
+                if (!details) {
+                    result = { message: `Run ${parsed.runId} not found.` };
+                    break;
+                }
+                result = {
+                    message: `Run ${details.ID} is currently in state: ${details.RunState}.`,
+                    run: {
+                        id: details.ID,
+                        state: details.RunState,
+                        testId: details.TestID,
+                        instanceId: details.TestInstanceID,
+                        startTime: details.StartTime,
+                        endTime: details.EndTime
+                    }
+                };
+                break;
+            }
+
+            case "startRun": {
+                const started = await client.startRun({
+                    testId: parsed.testId,
+                    testInstanceId: parsed.testInstanceId,
+                    hours: parsed.hours,
+                    minutes: parsed.minutes
+                });
+                result = {
+                    message: `Run started successfully. Run ID: ${started.ID}.`,
+                    runId: started.ID
+                };
+                break;
+            }
+
+            case "pollRun": {
+                const finalState = await client.pollRunUntilDone(parsed.runId, {
+                    intervalSec: 10,
+                    timeoutSec: 7200
+                });
+                result = {
+                    message: `Run ${parsed.runId} has completed with final state: ${finalState}.`,
+                    runId: parsed.runId,
+                    finalState
+                };
+                break;
+            }
+
+            case "getReport": {
+                const html = await client.findHtmlReportResult(parsed.runId);
+                if (!html) {
+                    result = { message: `No HTML report found for run ${parsed.runId}.` };
+                    break;
+                }
+                const saved = await client.downloadReport(parsed.runId, html.ID, `LRE-Report-${parsed.runId}.zip`);
+                result = {
+                    message: `Report downloaded successfully for run ${parsed.runId}. Saved to ${saved}.`,
+                    savedTo: saved
+                };
+                break;
+            }
+
+            default:
+                result = { message: "Unhandled action." };
+        }
+
+        res.json({ success: true, ...result });
+    } catch (err) {
+        console.error('POST /command error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 // ------------------------------------------------------------
 // GET /runs  → Natural-language summary of last 10 runs
