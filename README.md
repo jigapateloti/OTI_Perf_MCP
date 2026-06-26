@@ -5,7 +5,6 @@
 - How to run chat‑based commands  
 - How all files fit together  
 
-
 ---
 
 # 📘 **LRE Chat‑Driven Automation – README**
@@ -21,10 +20,12 @@ This lets you do things like:
 
 - “Show me the last 10 runs”  
 - “Start test 180 instance 9”  
-- “Poll run 1234 until it finishes”  
+- “Check load generator status”
+- “Verify my directory scripts”
+- “List test catalogs”
 - “Download the report for run 1234”  
 
-All directly from the chat window.
+All directly from your browser-based prompt panel.
 
 ---
 
@@ -34,46 +35,35 @@ All directly from the chat window.
 Inside the `sdk/` folder, we have:
 
 - `sessionManager.js` → handles authentication to LRE  
-- `lreClient.js` → wraps LRE REST APIs  
+- `lreClient.js` → wraps LRE REST APIs, diagnostics, and resources  
 - `utils.js` → helper functions  
 
 This SDK knows how to:
 
-- authenticate  
-- start runs  
-- poll runs  
-- download reports  
-- fetch run details  
+- authenticate and capture secure LWSSO cookies  
+- start, poll, and fetch run details  
+- download zip-compressed html report packages  
+- discover load generators, scripts, and configured test profiles  
 
 ---
 
 ### **2. The Local Server (`agent.js`)**
 This is the heart of the chat‑driven experience.
 
-`agent.js` exposes a single natural-language command endpoint:
+`agent.js` serves a dashboard and exposes a unified command parser endpoint:
 
-- `/command` → accepts prompts like `get runs`, `get run 1234`, `start run <testId> <instanceId>`, `poll run <id>`, `get report <id>`
-
-Each request is parsed and executed by the server, and the response is returned as JSON.
-
-This is what makes the experience feel like MCP.
+- `/command` → interprets natural-language commands and runs SDK functions
 
 ---
 
-### **3. Copilot Chat**
-Copilot Chat acts as the “front end.”
+### **3. Browser Chat UI**
+The Web Browser acts as the “front end.”
 
-You type natural language like:
+You open the Local UI in your browser at `http://localhost:3000`. You can select, copy, or type natural language like:
 
-> “Start test 180 instance 9.”
+> “Start test 180 instance 9”
 
-Copilot translates that into:
-
-```
-POST http://localhost:3000/command
-```
-
-The server runs the action, and Copilot shows the result in plain English.
+The browser UI sends this to the local server, executes the command, and prints the visual formatted response back to you.
 
 ---
 
@@ -82,15 +72,15 @@ The server runs the action, and Copilot shows the result in plain English.
 ```
 project/
 │
-├── agent.js                # Local server for chat-based commands
+├── agent.js                # Local server and NLP command route
 │
 ├── sdk/
 │   ├── sessionManager.js   # Authentication + session handling
 │   ├── lreClient.js        # LRE REST API wrapper
 │   └── utils.js            # Helpers
 │
-├── commands/
-│   └── commands.js         # Optional script-based testing (not required)
+├── public/
+│   └── index.html          # Web-based Chat Command UI with quick-copy presets
 │
 ├── package.json
 └── .env                    # LRE credentials + base URL
@@ -139,45 +129,42 @@ Leave this running.
 
 ## **Using the Chat‑Based Commands**
 
-Once the server is running, open **Copilot Chat** in VS Code and use natural language prompts.
+Once the server is running, open **`http://localhost:3000`** in your web browser.
 
-Here are the most useful ones:
+You can type commands directly, or click the **Copy** button beside the preset templates to load them into the command field instantly.
+
+Supported commands include:
+
+### **LRE Diagnostics & Infrastructure**
+- `get hosts` (or `check load generators` / `lgs status`) — checks availability and configuration status of load generators.
+- `get scripts` — verifies scripts registered in your LRE repository.
+- `get tests` — lists active test configuration models on the server.
 
 ### **List recent runs**
-> Show me the last 10 runs.
+- `get runs`
 
 ### **Start a test**
-> Start test 180 instance 9 using my local LRE agent.
+- `start run testId 456 testInstanceId 789`
 
 ### **Poll a run**
-> Poll run 1234 until it finishes.
+- `poll run 1234`
 
 ### **Download a report**
-> Download the report for run 1234.
+- `get report 1234`
 
 ### **Get run details**
-> Show details for run 1234.
-
-Copilot will call the correct endpoint and show the results directly in chat.
+- `get run 1234`
 
 ---
 
 ## **Why This Setup Exists**
-LRE’s MCP Server is powerful but:
+Instead of installing an external MCP client extension or routing cloud traffic to your host, this project gives you **the same lightweight chat‑driven experience** using:
 
-- requires installation  
-- requires admin access  
-- is not always available  
-- is not customizable  
+- a clean local Node.js server  
+- your own secure custom `.env` credentials  
+- direct local browser execution  
 
-This project gives you **the same chat‑driven experience** using:
-
-- a simple Node.js server  
-- your own LRE credentials  
-- natural‑language commands  
-- Copilot Chat as the interface  
-
-It is lightweight, flexible, and easy to maintain.
+It is secure, fast, and easy to maintain.
 
 ---
 
@@ -188,3 +175,22 @@ It is lightweight, flexible, and easy to maintain.
 - Anyone who prefers natural‑language commands over scripts  
 
 ---
+
+## **Extending the System (Optional)**
+The server can easily be extended with targets like:
+
+- `stop run <id>` → stop/abort an active run.
+- `delete run <id>` → delete execution history.
+- `get timeslots` → view physical reservation records.
+
+
+---
+
+If you want, I can also generate:
+
+- a **visual architecture diagram**  
+- a **quick‑start cheat sheet**  
+- a **manager‑friendly one‑page summary**  
+- a **troubleshooting section**  
+
+Just tell me what you want next.

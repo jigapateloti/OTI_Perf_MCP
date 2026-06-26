@@ -21,7 +21,10 @@
     .controls button#send:hover { background: #1b4fce; transform: translateY(-1px); }
     .controls button#reset { background: #ebebeb; color: #333; }
     .controls button#reset:hover { background: #d6d6d6; transform: translateY(-1px); }
-    pre { background: #f7f8fc; padding: 16px; border-radius: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+    .display-box { background: #f7f8fc; padding: 20px; border-radius: 12px; border: 1px solid #e0e4ee; margin-top: 16px; line-height: 1.6; font-size: 15px; color: #333; }
+    .display-box h3 { margin-top: 0; color: #1a202c; border-bottom: 2px solid #edf2f7; padding-bottom: 6px; }
+    .display-box ul { margin: 10px 0 0 0; padding-left: 20px; }
+    .display-box li { margin-bottom: 8px; }
     .help { margin-top: 16px; color: #555; }
   </style>
 </head>
@@ -30,6 +33,18 @@
     <h1>LRE Chat Command UI</h1>
     <p>Click a prompt to copy it, then paste it into your chat window.</p>
     <ul class="prompt-list">
+      <li class="prompt-item">
+        <div class="prompt-text">get hosts</div>
+        <button class="copy" data-prompt="get hosts">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">get scripts</div>
+        <button class="copy" data-prompt="get scripts">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">get tests</div>
+        <button class="copy" data-prompt="get tests">Copy</button>
+      </li>
       <li class="prompt-item">
         <div class="prompt-text">get runs</div>
         <button class="copy" data-prompt="get runs">Copy</button>
@@ -58,7 +73,7 @@
       <button id="reset" class="reset">Reset</button>
     </div>
     <div class="help" id="status"></div>
-    <pre id="response"></pre>
+    <div class="display-box" id="response"></div>
   </div>
 
   <script>
@@ -69,12 +84,89 @@
     const resetBtn = document.getElementById('reset');
     const copyButtons = document.querySelectorAll('.prompt-item button.copy');
 
+    function renderSummary(data) {
+      if (!data.success) {
+        return `<p style="color:#d93025; font-weight:bold;">⚠️ Error: ${data.message || data.error}</p>`;
+      }
+
+      let summaryHtml = `<p style="color:#1e8e3e; font-weight:bold;">🤖 Assistant Response:</p>`;
+      summaryHtml += `<p>${data.message}</p>`;
+
+      if (data.hosts) {
+        summaryHtml += `<h3>🖥️ Load Generators Status</h3>`;
+        if (Array.isArray(data.hosts) && data.hosts.length > 0) {
+          summaryHtml += `<ul>`;
+          data.hosts.forEach(h => {
+            const stateColor = h.Status === 'Operational' ? '#1e8e3e' : '#d93025';
+            summaryHtml += `<li><strong>${h.Name}</strong> - Status: <span style="color:${stateColor};font-weight:bold;">${h.Status || h.StatusState || 'Unknown'}</span></li>`;
+          });
+          summaryHtml += `</ul>`;
+        } else {
+          summaryHtml += `<p>No active load generators configured.</p>`;
+        }
+      }
+
+      if (data.scripts) {
+        summaryHtml += `<h3>📜 Scripts List</h3>`;
+        if (Array.isArray(data.scripts) && data.scripts.length > 0) {
+          summaryHtml += `<ul>`;
+          data.scripts.forEach(s => {
+            summaryHtml += `<li><strong>${s.Name}</strong> - Path: <code>${s.Path}</code> (ID: ${s.ID})</li>`;
+          });
+          summaryHtml += `</ul>`;
+        } else {
+          summaryHtml += `<p>No scripts found in the project.</p>`;
+        }
+      }
+
+      if (data.tests) {
+        summaryHtml += `<h3>🧪 Configured Tests</h3>`;
+        if (Array.isArray(data.tests) && data.tests.length > 0) {
+          summaryHtml += `<ul>`;
+          data.tests.forEach(t => {
+            summaryHtml += `<li><strong>${t.Name}</strong> (ID: ${t.ID}) - Created By: <em>${t.CreatedBy}</em></li>`;
+          });
+          summaryHtml += `</ul>`;
+        } else {
+          summaryHtml += `<p>No test definitions configured on the server.</p>`;
+        }
+      }
+
+      if (data.runs) {
+        summaryHtml += `<h3>🏃 Latest Runs</h3>`;
+        if (Array.isArray(data.runs) && data.runs.length > 0) {
+          summaryHtml += `<ul>`;
+          data.runs.forEach(r => {
+            const hasFinished = r.state === 'Finished' ? '#1e8e3e' : '#e28743';
+            summaryHtml += `<li><strong>Run ID: ${r.id}</strong> (Test: ${r.testId}) - State: <span style="color:${hasFinished};font-weight:bold;">${r.state}</span></li>`;
+          });
+          summaryHtml += `</ul>`;
+        } else {
+          summaryHtml += `<p>No project execution history available.</p>`;
+        }
+      }
+
+      if (data.run) {
+        const r = data.run;
+        const hasFinished = r.state === 'Finished' ? '#1e8e3e' : '#e28743';
+        summaryHtml += `<h3>🏃 Run Details</h3>`;
+        summaryHtml += `<ul>`;
+        summaryHtml += `<li><strong>Run ID:</strong> ${r.id}</li>`;
+        summaryHtml += `<li><strong>Test ID:</strong> ${r.testId} (Instance: ${r.instanceId})</li>`;
+        summaryHtml += `<li><strong>Current State:</strong> <span style="color:${hasFinished};font-weight:bold;">${r.state}</span></li>`;
+        summaryHtml += `<li><strong>Time Range:</strong> ${r.startTime || 'Pending'} to ${r.endTime || 'Active'}</li>`;
+        summaryHtml += `</ul>`;
+      }
+
+      return summaryHtml;
+    }
+
     copyButtons.forEach(button => {
       button.addEventListener('click', async () => {
         const prompt = button.dataset.prompt;
         try {
           await navigator.clipboard.writeText(prompt);
-          statusEl.textContent = `Copied: ${prompt}`;
+          statusEl.textContent = `Copied to clipboard! Ready to send.`;
           promptEl.value = prompt;
         } catch (err) {
           statusEl.textContent = 'Copy failed. Please copy manually.';
@@ -87,7 +179,7 @@
       if (!prompt) return;
       sendBtn.disabled = true;
       statusEl.textContent = 'Sending command...';
-      responseEl.textContent = '';
+      responseEl.innerHTML = '';
 
       try {
         const res = await fetch('/command', {
@@ -96,11 +188,13 @@
           body: JSON.stringify({ prompt })
         });
         const data = await res.json();
-        responseEl.textContent = JSON.stringify(data, null, 2);
+        
+        // Render rich assistant-style summary
         statusEl.textContent = data.success ? 'Success' : 'Error';
+        responseEl.innerHTML = renderSummary(data);
       } catch (err) {
         statusEl.textContent = 'Request failed';
-        responseEl.textContent = err.message;
+        responseEl.innerHTML = `<span style="color:#d93025; font-weight:bold;">${err.message}</span>`;
       } finally {
         sendBtn.disabled = false;
       }
@@ -109,7 +203,7 @@
     resetBtn.addEventListener('click', () => {
       promptEl.value = '';
       statusEl.textContent = '';
-      responseEl.textContent = '';
+      responseEl.innerHTML = '';
       promptEl.focus();
     });
   </script>

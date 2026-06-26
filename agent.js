@@ -24,6 +24,19 @@ function parseCommand(prompt) {
     const minutesMatch = text.match(/(\d+)\s*(?:minutes|mins)/);
     const countMatch = text.match(/(?:last|recent|top)\s*(\d+)\s*runs?/);
 
+    // Diagnostics / System Discovery
+    if (/\bhosts?\b|\bload\s*generators?\b|\blgs?\b/.test(text)) {
+        return { action: "getHosts" };
+    }
+
+    if (/\bscripts?\b/.test(text)) {
+        return { action: "getScripts" };
+    }
+
+    if (/\btests?\b/.test(text) && !/\b(run|start|launch)\b/.test(text)) {
+        return { action: "getTests" };
+    }
+
     if (/(?:get|show|fetch|download)\b.*\b(report|run)\b/.test(text) && runId && /\breport\b/.test(text)) {
         return { action: "getReport", runId };
     }
@@ -76,6 +89,39 @@ app.post("/command", async (req, res) => {
         let result;
 
         switch (parsed.action) {
+            case "getHosts": {
+                const hosts = await client.getHosts();
+                result = {
+                    message: Array.isArray(hosts) 
+                        ? `Found ${hosts.length} load generators configured in your project.` 
+                        : "Fetch load generators response completed successfully.",
+                    hosts
+                };
+                break;
+            }
+
+            case "getScripts": {
+                const scripts = await client.getScripts();
+                result = {
+                    message: Array.isArray(scripts) 
+                        ? `Found ${scripts.length} script paths registered in your project repository.` 
+                        : "Fetch scripts response completed successfully.",
+                    scripts
+                };
+                break;
+            }
+
+            case "getTests": {
+                const tests = await client.getTests();
+                result = {
+                    message: Array.isArray(tests) 
+                        ? `Found ${tests.length} test configurations defined on the server.` 
+                        : "Fetch tests response completed successfully.",
+                    tests
+                };
+                break;
+            }
+
             case "getRuns": {
                 const runs = await client.getRuns();
                 const last10 = runs.slice(0, 10);
@@ -166,8 +212,37 @@ app.post("/command", async (req, res) => {
 });
 
 // ------------------------------------------------------------
-// Start the server
+// Start the server & Keep Session Hydrated
 // ------------------------------------------------------------
-app.listen(3000, () => {
+app.listen(3000, async () => {
     console.log("LRE Agent running on http://localhost:3000");
+
+    // Perform background authentication on startup
+    try {
+        console.log("Initializing startup background authentication with LRE...");
+        await getAuthenticatedClient();
+        console.log("LRE Startup authentication completed successfully.");
+    } catch (err) {
+        console.warn("LRE Startup authentication warning:", err.message);
+    }
+
+    // Keep session hydrated and print status logs every 5 seconds
+    setInterval(async () => {
+        const timestamp = new Date().toISOString();
+        try {
+            console.log(`[${timestamp}] 🔄 Background check: Verifying LRE authentication and connection...`);
+            const client = await getAuthenticatedClient();
+            
+            // Fetch standard runs to verify the cookie is alive and valid
+            const runs = await client.getRuns();
+            const runsCount = Array.isArray(runs) ? runs.length : 0;
+            
+            console.log(`[${timestamp}] ✅ Auth OK | Session is hydrated and healthy. Current LRE Project Runs: ${runsCount}`);
+        } catch (err) {
+            console.error(`[${timestamp}] ❌ Background Auth Check Failed: ${err.message}`);
+            if (err.response) {
+                console.error(`[${timestamp}] ⚠️ Details: HTTP ${err.response.status} - ${JSON.stringify(err.response.data)}`);
+            }
+        }
+    }, 5 * 1000);
 });

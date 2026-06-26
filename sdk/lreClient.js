@@ -176,6 +176,53 @@ class LREClient {
         return outputPath;
     }
 
+    // ---------- LRE Diagnostics & Resource Discovery ----------
+
+    async getHosts() {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/Hosts`;
+
+        const response = await axios.get(url, {
+            httpsAgent: agent,
+            headers: {
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
+    async getScripts() {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/Scripts`;
+
+        const response = await axios.get(url, {
+            httpsAgent: agent,
+            headers: {
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
+    async getTests() {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/Tests`;
+
+        const response = await axios.get(url, {
+            httpsAgent: agent,
+            headers: {
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
     // ---------- Extension points (add more as needed) ----------
 
     // async getTests() { ... }
