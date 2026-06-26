@@ -34,6 +34,14 @@
     <p>Click a prompt to copy it, then paste it into your chat window.</p>
     <ul class="prompt-list">
       <li class="prompt-item">
+        <div class="prompt-text">get project info</div>
+        <button class="copy" data-prompt="get project info">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">get timeslots</div>
+        <button class="copy" data-prompt="get timeslots">Copy</button>
+      </li>
+      <li class="prompt-item">
         <div class="prompt-text">get hosts</div>
         <button class="copy" data-prompt="get hosts">Copy</button>
       </li>
@@ -46,24 +54,20 @@
         <button class="copy" data-prompt="get tests">Copy</button>
       </li>
       <li class="prompt-item">
+        <div class="prompt-text">simulate run testId 180 testInstanceId 9</div>
+        <button class="copy" data-prompt="simulate run testId 180 testInstanceId 9">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">simulate poll 77701</div>
+        <button class="copy" data-prompt="simulate poll 77701">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">simulate report 77701</div>
+        <button class="copy" data-prompt="simulate report 77701">Copy</button>
+      </li>
+      <li class="prompt-item">
         <div class="prompt-text">get runs</div>
         <button class="copy" data-prompt="get runs">Copy</button>
-      </li>
-      <li class="prompt-item">
-        <div class="prompt-text">get run 1234</div>
-        <button class="copy" data-prompt="get run 1234">Copy</button>
-      </li>
-      <li class="prompt-item">
-        <div class="prompt-text">start run testId 456 testInstanceId 789</div>
-        <button class="copy" data-prompt="start run testId 456 testInstanceId 789">Copy</button>
-      </li>
-      <li class="prompt-item">
-        <div class="prompt-text">poll run 1234</div>
-        <button class="copy" data-prompt="poll run 1234">Copy</button>
-      </li>
-      <li class="prompt-item">
-        <div class="prompt-text">get report 1234</div>
-        <button class="copy" data-prompt="get report 1234">Copy</button>
       </li>
     </ul>
 
@@ -156,6 +160,51 @@
         summaryHtml += `<li><strong>Current State:</strong> <span style="color:${hasFinished};font-weight:bold;">${r.state}</span></li>`;
         summaryHtml += `<li><strong>Time Range:</strong> ${r.startTime || 'Pending'} to ${r.endTime || 'Active'}</li>`;
         summaryHtml += `</ul>`;
+      }
+
+      if (data.projectDetails) {
+        const p = data.projectDetails;
+        summaryHtml += `<h3>🏢 Project Metadata</h3>`;
+        summaryHtml += `<ul>`;
+        summaryHtml += `<li><strong>Name:</strong> ${p.name || 'Unspecified'}</li>`;
+        summaryHtml += `<li><strong>Domain:</strong> ${p.domain || 'Unspecified'} (ID: ${p.id || 'N/A'})</li>`;
+        summaryHtml += `<li><strong>Active Status:</strong> <span style="color:#1e8e3e;font-weight:bold;">${p.status || 'Active'}</span></li>`;
+        summaryHtml += `<li><strong>Description:</strong> <em>${p.description}</em></li>`;
+        summaryHtml += `</ul>`;
+      }
+
+      if (data.timeslots) {
+        summaryHtml += `<h3>📅 Timeslot Reservations</h3>`;
+        if (Array.isArray(data.timeslots) && data.timeslots.length > 0) {
+          summaryHtml += `<ul>`;
+          data.timeslots.forEach(t => {
+            summaryHtml += `<li><strong>${t.name} (ID: ${t.id})</strong> - Starts: ${t.startTime} (Duration: ${t.duration} mins) - State: ${t.status}</li>`;
+          });
+          summaryHtml += `</ul>`;
+        } else {
+          summaryHtml += `<p>No current timeslot reservation schedules found. Open slot configurations to bypass allocation errors.</p>`;
+        }
+      }
+
+      if (data.simulatedRun) {
+        const s = data.simulatedRun;
+        const simColor = s.state === 'Finished' ? '#1e8e3e' : '#2463ff';
+        summaryHtml += `<h3>🤖 Simulated Runner State (Virtual PoC Mode)</h3>`;
+        summaryHtml += `<ul>`;
+        summaryHtml += `<li><strong>Virtual Run ID:</strong> ${s.id}</li>`;
+        summaryHtml += `<li><strong>Allocated Test Pattern:</strong> Test ID ${s.testId} (Instance: ${s.instanceId})</li>`;
+        summaryHtml += `<li><strong>Simulated Run Status:</strong> <span style="color:${simColor};font-weight:bold;">${s.state}</span></li>`;
+        if (s.startTime) summaryHtml += `<li><strong>V-Start Time:</strong> ${s.startTime}</li>`;
+        if (s.endTime) summaryHtml += `<li><strong>V-Completion:</strong> ${s.endTime}</li>`;
+        summaryHtml += `</ul>`;
+        if (s.state !== 'Finished') {
+          summaryHtml += `<p style="font-size:13px; color:#555; background:#fff3cd; padding:8px 12px; border-radius:6px; border:1px solid #ffeeba; margin-top:10px;">💡 Tip: You can query <code>simulate poll ${s.id}</code> next to observe real-time Load Generator status progressions!</p>`;
+        }
+      }
+
+      if (data.savedTo && data.simulationActive) {
+        summaryHtml += `<h3>📊 Simulated Metrics Download</h3>`;
+        summaryHtml += `<p>✅ Successful Mock run metrics pipeline execution! Saved a sample simulated performance parameters bundle matching active HTML requirements as <code>${data.savedTo}</code>.</p>`;
       }
 
       return summaryHtml;

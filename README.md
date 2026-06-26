@@ -23,6 +23,7 @@ This lets you do things like:
 - “Check load generator status”
 - “Verify my directory scripts”
 - “List test catalogs”
+- “Simulate test run cycles on empty workspaces”
 - “Download the report for run 1234”  
 
 All directly from your browser-based prompt panel.
@@ -135,25 +136,24 @@ You can type commands directly, or click the **Copy** button beside the preset t
 
 Supported commands include:
 
-### **LRE Diagnostics & Infrastructure**
+### **LRE Diagnostics & Infrastructure (Live APIs)**
+- `get project info` — live connectivity audit fetching status, ID, Name, and configurations.
+- `get timeslots` — displays physical reservation timeslots and scheduling history.
 - `get hosts` (or `check load generators` / `lgs status`) — checks availability and configuration status of load generators.
 - `get scripts` — verifies scripts registered in your LRE repository.
 - `get tests` — lists active test configuration models on the server.
 
-### **List recent runs**
-- `get runs`
+### **Interactive PoC Simulation Workflow (Demo Mode)**
+- `simulate run testId 180 testInstanceId 9` — starts a simulated run (created virtual run ID `77701`).
+- `simulate poll 77701` — steps through status progression (*Initializing* -> *Running* -> *Collate And Analyze* -> *Finished*).
+- `simulate report 77701` — triggers a mock HTML reports downloader saving simulated execution parameters package.
 
-### **Start a test**
-- `start run testId 456 testInstanceId 789`
-
-### **Poll a run**
-- `poll run 1234`
-
-### **Download a report**
-- `get report 1234`
-
-### **Get run details**
-- `get run 1234`
+### **Test Runs Control (Live APIs)**
+- `get runs` — fetches standard LRE project run records.
+- `start run testId 456 testInstanceId 789` — schedules a live test run on the server.
+- `poll run 1234` — waits on a real physical execution status until done.
+- `get report 1234` — locates and extracts a real HTML performance metrics zip packet.
+- `get run 1234` — reads real-time resource allocations, state details, and run dates.
 
 ---
 

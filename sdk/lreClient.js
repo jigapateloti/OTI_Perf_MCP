@@ -223,6 +223,36 @@ class LREClient {
         return response.data;
     }
 
+    async getProjectDetails() {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}`;
+
+        const response = await axios.get(url, {
+            httpsAgent: agent,
+            headers: {
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
+    async getTimeslots() {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/Timeslots`;
+
+        const response = await axios.get(url, {
+            httpsAgent: agent,
+            headers: {
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
     // ---------- Extension points (add more as needed) ----------
 
     // async getTests() { ... }

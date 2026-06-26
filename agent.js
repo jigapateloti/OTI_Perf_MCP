@@ -12,6 +12,12 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
+// In-memory store for simulated run states
+const simulatedState = {
+    counter: 77701,
+    runs: {}
+};
+
 function parseCommand(prompt) {
     const text = (prompt || "").trim().toLowerCase();
     if (!text) return null;
@@ -24,6 +30,21 @@ function parseCommand(prompt) {
     const minutesMatch = text.match(/(\d+)\s*(?:minutes|mins)/);
     const countMatch = text.match(/(?:last|recent|top)\s*(\d+)\s*runs?/);
 
+    // Simulation Workflow Modes
+    if (text.startsWith("simulate run") || text.startsWith("simulate start")) {
+        const testId = testIdMatch ? Number(testIdMatch[1]) : numbers[0] || 180;
+        const instanceId = instanceIdMatch ? Number(instanceIdMatch[1]) : numbers[1] || numbers[0] || 9;
+        return { action: "simulateStart", testId, testInstanceId: instanceId };
+    }
+
+    if (text.startsWith("simulate poll")) {
+        return { action: "simulatePoll", runId: runId || 77701 };
+    }
+
+    if (text.startsWith("simulate report")) {
+        return { action: "simulateReport", runId: runId || 77701 };
+    }
+
     // Diagnostics / System Discovery
     if (/\bhosts?\b|\bload\s*generators?\b|\blgs?\b/.test(text)) {
         return { action: "getHosts" };
@@ -35,6 +56,14 @@ function parseCommand(prompt) {
 
     if (/\btests?\b/.test(text) && !/\b(run|start|launch)\b/.test(text)) {
         return { action: "getTests" };
+    }
+
+    if (/\bproject\b.*\b(info|details|about)\b/.test(text)) {
+        return { action: "getProjectInfo" };
+    }
+
+    if (/\btimeslots?\b/.test(text)) {
+        return { action: "getTimeslots" };
     }
 
     if (/(?:get|show|fetch|download)\b.*\b(report|run)\b/.test(text) && runId && /\breport\b/.test(text)) {
@@ -89,6 +118,98 @@ app.post("/command", async (req, res) => {
         let result;
 
         switch (parsed.action) {
+            case "simulateStart": {
+                const newId = simulatedState.counter++;
+                simulatedState.runs[newId] = {
+                    id: newId,
+                    testId: parsed.testId,
+                    instanceId: parsed.testInstanceId,
+                    state: "Initializing",
+                    step: 0,
+                    startTime: new Date().toISOString(),
+                    endTime: null
+                };
+                result = {
+                    message: `Simulated Run initialized successfully on virtual load generators! Created Virtual Run ID: ${newId}.`,
+                    simulatedRun: simulatedState.runs[newId]
+                };
+                break;
+            }
+
+            case "simulatePoll": {
+                const run = simulatedState.runs[parsed.runId];
+                if (!run) {
+                    result = {
+                        message: `Simulation record for Run ID ${parsed.runId} not found, but I have dynamically initialized a virtual runner model with ID ${parsed.runId}.`,
+                        simulatedRun: { id: parsed.runId, state: "Finished" }
+                    };
+                    break;
+                }
+                
+                const states = ["Initializing", "Running", "Collate And Analyze", "Finished"];
+                if (run.step < states.length - 1) {
+                    run.step++;
+                    run.state = states[run.step];
+                } else {
+                    run.state = "Finished";
+                    run.endTime = new Date().toISOString();
+                }
+
+                result = {
+                    message: `Verified virtual Load Generator availability. Simulated Run ID ${run.id} is progressing. (Step ${run.step + 1}/${states.length})`,
+                    simulatedRun: {
+                        id: run.id,
+                        testId: run.testId,
+                        instanceId: run.instanceId,
+                        state: run.state,
+                        startTime: run.startTime,
+                        endTime: run.endTime
+                    }
+                };
+                break;
+            }
+
+            case "simulateReport": {
+                result = {
+                    message: `Simulated performance metrics generated. Obtained sample HTML execution results package for simulated Run ID ${parsed.runId}.`,
+                    savedTo: `LRE-Report-${parsed.runId}-SIMULATED.zip`,
+                    simulationActive: true
+                };
+                break;
+            }
+
+            case "getProjectInfo": {
+                const project = await client.getProjectDetails();
+                result = {
+                    message: `Successfully connected to LRE and retrieved information for active project "${project.Name || "Project"}".`,
+                    projectDetails: {
+                        name: project.Name,
+                        domain: project.DomainName,
+                        id: project.ID,
+                        status: project.Status,
+                        description: project.Description || "No description provided."
+                    }
+                };
+                break;
+            }
+
+            case "getTimeslots": {
+                const slots = await client.getTimeslots();
+                result = {
+                    message: Array.isArray(slots)
+                        ? `Retrieved ${slots.length} timeslot reservations. Load tests require reserved timeslots to run.`
+                        : "Fetch timeslots response completed successfully.",
+                    timeslots: Array.isArray(slots) ? slots.map(s => ({
+                        id: s.ID,
+                        name: s.Name,
+                        startTime: s.StartTime,
+                        duration: s.Duration,
+                        status: s.Status
+                    })) : []
+                };
+                break;
+            }
+
             case "getHosts": {
                 const hosts = await client.getHosts();
                 result = {
@@ -226,7 +347,7 @@ app.listen(3000, async () => {
         console.warn("LRE Startup authentication warning:", err.message);
     }
 
-    // Keep session hydrated and print status logs every 5 seconds
+    // Keep session hydrated and print status logs every 10 seconds
     setInterval(async () => {
         const timestamp = new Date().toISOString();
         try {
@@ -244,5 +365,5 @@ app.listen(3000, async () => {
                 console.error(`[${timestamp}] ⚠️ Details: HTTP ${err.response.status} - ${JSON.stringify(err.response.data)}`);
             }
         }
-    }, 5 * 1000);
+    }, 10 * 1000);
 });
