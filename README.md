@@ -107,6 +107,8 @@ Your `.env` file should contain:
 LRE_BASE_URL=https://your-lre-server
 LRE_USERNAME=your-username
 LRE_PASSWORD=your-password
+
+Alternatively copy the provided `.env.example` and edit the values. The repository includes a `.env.example` listing all supported keys (e.g. `LRE_BASE_URL`, `LRE_DOMAIN`, `LRE_PROJECT`, `TENANT_ID`, `LRE_USERNAME`, `LRE_PASSWORD`).
 ```
 
 ---
@@ -125,6 +127,16 @@ LRE Agent running on http://localhost:3000
 ```
 
 Leave this running.
+
+Tip: you can add an npm script to `package.json` to start the server more conveniently:
+
+```
+"scripts": {
+	"start": "node agent.js"
+}
+```
+
+Security note: for convenience during development the project may set `NODE_TLS_REJECT_UNAUTHORIZED=0` to accept self-signed certs when contacting `LRE_BASE_URL`. This is insecure for production — use valid certificates or a secure tunnel instead.
 
 ---
 
@@ -147,6 +159,8 @@ Supported commands include:
 - `simulate run testId 180 testInstanceId 9` — starts a simulated run (created virtual run ID `77701`).
 - `simulate poll 77701` — steps through status progression (*Initializing* -> *Running* -> *Collate And Analyze* -> *Finished*).
 - `simulate report 77701` — triggers a mock HTML reports downloader saving simulated execution parameters package.
+
+Downloads: report zips (real or simulated) are saved to the current working directory where `node agent.js` is run. Check the console output for the exact saved path.
 
 ### **Test Runs Control (Live APIs)**
 - `get runs` — fetches standard LRE project run records.
