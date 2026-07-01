@@ -1,3 +1,24 @@
+# LRE Project
+
+Basic README content.
+
+## Environment variables
+
+Add a `.env` file at the repository root with the following variables (replace values as appropriate):
+
+```
+LRE_BASE_URL=https://your-lre-server
+LRE_USERNAME=your-username
+LRE_PASSWORD=your-password
+
+LRE_DOMAIN={DEFAULT}
+LRE_PROJECT={PROJECT_NAME}
+TENANT_ID={TENANT_ID}
+```
+
+Notes:
+- Keep `.env` out of version control (add to `.gitignore`).
+- `LRE_DOMAIN`, `LRE_PROJECT`, and `TENANT_ID` are used by the SDK to scope requests to the correct domain/project/tenant.
 - What this setup is  
 - Why it exists  
 - How it works  
