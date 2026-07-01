@@ -1,7 +1,5 @@
 # LRE Project
 
-Basic README content.
-
 ## Environment variables
 
 Add a `.env` file at the repository root with the following variables (replace values as appropriate):
@@ -220,12 +218,3 @@ The server can easily be extended with targets like:
 
 
 ---
-
-If you want, I can also generate:
-
-- a **visual architecture diagram**  
-- a **quick‑start cheat sheet**  
-- a **manager‑friendly one‑page summary**  
-- a **troubleshooting section**  
-
-Just tell me what you want next.
