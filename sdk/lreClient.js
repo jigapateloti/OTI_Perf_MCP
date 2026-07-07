@@ -62,7 +62,14 @@ class LREClient {
             (now - this.authenticatedAt) > this.sessionTtlMs;
 
         if (expired) {
-            await this.authenticate();
+            // Deduplicate concurrent authentication requests
+            if (this.authPromise) {
+                return this.authPromise;
+            }
+            this.authPromise = this.authenticate().finally(() => {
+                this.authPromise = null;
+            });
+            await this.authPromise;
         }
     }
 
@@ -172,7 +179,7 @@ class LREClient {
             responseType: "arraybuffer"
         });
 
-        fs.writeFileSync(outputPath, response.data);
+        await fs.promises.writeFile(outputPath, response.data);
         return outputPath;
     }
 
