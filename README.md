@@ -17,12 +17,6 @@ TENANT_ID={TENANT_ID}
 Notes:
 - Keep `.env` out of version control (add to `.gitignore`).
 - `LRE_DOMAIN`, `LRE_PROJECT`, and `TENANT_ID` are used by the SDK to scope requests to the correct domain/project/tenant.
-- What this setup is  
-- Why it exists  
-- How it works  
-- How to start the server  
-- How to run chat‑based commands  
-- How all files fit together  
 
 ---
 
@@ -44,6 +38,7 @@ This lets you do things like:
 - “List test catalogs”
 - “Simulate test run cycles on empty workspaces”
 - “Download the report for run 1234”  
+- “Get trend reports” / “Simulate trend reports”
 
 All directly from your browser-based prompt panel.
 
@@ -55,14 +50,18 @@ All directly from your browser-based prompt panel.
 Inside the `sdk/` folder, we have:
 
 - `sessionManager.js` → handles authentication to LRE  
-- `lreClient.js` → wraps LRE REST APIs, diagnostics, and resources  
+- `lreClient.js` → wraps LRE REST APIs, diagnostics, resources, and trend calculations  
+- `commandParser.js` → pure helper module matching and parsing inputs  
+- `commandHandlers.js` → execution handlers validating arguments and invoking API methods  
+- `simulatedState.js` → manages local mock database models for runs and trend reports  
 - `utils.js` → helper functions  
 
 This SDK knows how to:
 
-- authenticate and capture secure LWSSO cookies  
+- authenticate and capture secure LWSSO cookies (using concurrent request-deduplication to prevent rate limits)
 - start, poll, and fetch run details  
-- download zip-compressed html report packages  
+- download zip-compressed html report packages asynchronously
+- manage and calculate LRE Trend Reports on demand
 - discover load generators, scripts, and configured test profiles  
 
 ---
@@ -72,7 +71,7 @@ This is the heart of the chat‑driven experience.
 
 `agent.js` serves a dashboard and exposes a unified command parser endpoint:
 
-- `/command` → interprets natural-language commands and runs SDK functions
+- `/command` → interprets natural-language commands and runs clean execution handlers from the SDK state modules which perform non-blocking actions.
 
 ---
 
@@ -81,7 +80,7 @@ The Web Browser acts as the “front end.”
 
 You open the Local UI in your browser at `http://localhost:3000`. You can select, copy, or type natural language like:
 
-> “Start test 180 instance 9”
+> “Start test 180 instance 9” or “simulate trend reports”
 
 The browser UI sends this to the local server, executes the command, and prints the visual formatted response back to you.
 
@@ -92,15 +91,18 @@ The browser UI sends this to the local server, executes the command, and prints 
 ```
 project/
 │
-├── agent.js                # Local server and NLP command route
+├── agent.js                # Local server and routing configurations
 │
 ├── sdk/
+│   ├── commandHandlers.js  # Clean validation and execution routes
+│   ├── commandParser.js    # Decoupled NLP regex parsing patterns
+│   ├── lreClient.js        # Optimized LRE REST API wrapper (non-blocking, deduplicated concurrent requests)
 │   ├── sessionManager.js   # Authentication + session handling
-│   ├── lreClient.js        # LRE REST API wrapper
+│   ├── simulatedState.js   # In-memory mock database models
 │   └── utils.js            # Helpers
 │
 ├── public/
-│   └── index.html          # Web-based Chat Command UI with quick-copy presets
+│   └── index.html          # Web-based Chat Command UI with quick-copy presets representing Trend reports and standard workflows
 │
 ├── package.json
 └── .env                    # LRE credentials + base URL
@@ -179,6 +181,18 @@ Supported commands include:
 - `simulate poll 77701` — steps through status progression (*Initializing* -> *Running* -> *Collate And Analyze* -> *Finished*).
 - `simulate report 77701` — triggers a mock HTML reports downloader saving simulated execution parameters package.
 
+### **Trend Reports Management (Live & Simulation)**
+- `simulate trend reports` (or `simulate trend report list`) — views simulated trend reports database.
+- `simulate create trend report Benchmark Q3` — registers a new simulated draft trend sheet.
+- `simulate calculate trend report 3001` — triggers mock trend regressions calculations.
+- `get trend reports` — lists real trend reports configured inside your active LRE project.
+- `get trend report 3001` — views live details and associated runs for the trend configuration.
+- `create trend report Performance Baseline` — specifies a new trend report config.
+- `delete trend report 3001` — removes a trend configuration.
+- `associate run 77701 to trend report 3001` — links test iterations into the trend calculation sheet.
+- `disassociate run 77701 from trend report 3001` — detaches execution ranges form trends analysis.
+- `calculate trend report 3001` — triggers LRE servers to generate and render new trend graphs.
+
 Downloads: report zips (real or simulated) are saved to the current working directory where `node agent.js` is run. Check the console output for the exact saved path.
 
 ### **Test Runs Control (Live APIs)**
@@ -193,7 +207,7 @@ Downloads: report zips (real or simulated) are saved to the current working dire
 ## **Why This Setup Exists**
 Instead of installing an external MCP client extension or routing cloud traffic to your host, this project gives you **the same lightweight chat‑driven experience** using:
 
-- a clean local Node.js server  
+- a clean, modular, and optimized local Node.js server  
 - your own secure custom `.env` credentials  
 - direct local browser execution  
 
@@ -205,7 +219,7 @@ It is secure, fast, and easy to maintain.
 - QA engineers running LRE tests  
 - Managers who want quick run summaries  
 - Developers who want to automate LRE workflows  
-- Anyone who prefers natural‑language commands over scripts  
+- Anyone who prefers natural‑language commands over trends/test scripts  
 
 ---
 
@@ -214,7 +228,6 @@ The server can easily be extended with targets like:
 
 - `stop run <id>` → stop/abort an active run.
 - `delete run <id>` → delete execution history.
-- `get timeslots` → view physical reservation records.
 
 
 ---
