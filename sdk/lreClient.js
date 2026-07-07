@@ -253,6 +253,125 @@ class LREClient {
         return response.data;
     }
 
+    // ---------- Trend Reports ----------
+
+    async getTrendReports() {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/TrendReports`;
+
+        const response = await axios.get(url, {
+            httpsAgent: agent,
+            headers: {
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
+    async getTrendReportDetails(trendReportId) {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/TrendReports/${trendReportId}`;
+
+        const response = await axios.get(url, {
+            httpsAgent: agent,
+            headers: {
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
+    async createTrendReport(name) {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/TrendReports`;
+
+        const body = {
+            Name: name
+        };
+
+        const response = await axios.post(url, body, {
+            httpsAgent: agent,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
+    async deleteTrendReport(trendReportId) {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/TrendReports/${trendReportId}`;
+
+        const response = await axios.delete(url, {
+            httpsAgent: agent,
+            headers: this.authHeaders
+        });
+
+        return response.data;
+    }
+
+    async associateRunsToTrendReport(trendReportId, runIds) {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/TrendReports/${trendReportId}/AssociateRuns`;
+
+        const body = {
+            TrendReportAssociatedRunList: runIds.map(id => ({ RunID: Number(id) }))
+        };
+
+        const response = await axios.post(url, body, {
+            httpsAgent: agent,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
+    async disassociateRunsFromTrendReport(trendReportId, runIds) {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/TrendReports/${trendReportId}/DisassociateRuns`;
+
+        const body = {
+            TrendReportAssociatedRunList: runIds.map(id => ({ RunID: Number(id) }))
+        };
+
+        const response = await axios.post(url, body, {
+            httpsAgent: agent,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
+    async calculateTrendReport(trendReportId) {
+        await this.ensureAuthenticated();
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}/TrendReports/${trendReportId}/calculate`;
+
+        const response = await axios.post(url, {}, {
+            httpsAgent: agent,
+            headers: {
+                "Accept": "application/json",
+                ...this.authHeaders
+            }
+        });
+
+        return response.data;
+    }
+
     // ---------- Extension points (add more as needed) ----------
 
     // async getTests() { ... }

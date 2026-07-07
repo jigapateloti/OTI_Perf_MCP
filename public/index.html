@@ -69,6 +69,22 @@
         <div class="prompt-text">get runs</div>
         <button class="copy" data-prompt="get runs">Copy</button>
       </li>
+      <li class="prompt-item">
+        <div class="prompt-text">simulate trend reports</div>
+        <button class="copy" data-prompt="simulate trend reports">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">simulate create trend report Benchmark Q3</div>
+        <button class="copy" data-prompt="simulate create trend report Benchmark Q3">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">simulate calculate trend report 3001</div>
+        <button class="copy" data-prompt="simulate calculate trend report 3001">Copy</button>
+      </li>
+      <li class="prompt-item">
+        <div class="prompt-text">get trend reports</div>
+        <button class="copy" data-prompt="get trend reports">Copy</button>
+      </li>
     </ul>
 
     <textarea id="prompt" placeholder="Type your command here..."></textarea>
@@ -205,6 +221,61 @@
       if (data.savedTo && data.simulationActive) {
         summaryHtml += `<h3>📊 Simulated Metrics Download</h3>`;
         summaryHtml += `<p>✅ Successful Mock run metrics pipeline execution! Saved a sample simulated performance parameters bundle matching active HTML requirements as <code>${data.savedTo}</code>.</p>`;
+      }
+
+      if (data.trendReports) {
+        summaryHtml += `<h3>📊 LRE Trend Reports</h3>`;
+        if (Array.isArray(data.trendReports) && data.trendReports.length > 0) {
+          summaryHtml += `<ul>`;
+          data.trendReports.forEach(tr => {
+            summaryHtml += `<li><strong>${tr.Name || tr.name || 'Unnamed Report'}</strong> (ID: ${tr.ID || tr.id}) - Status: ${tr.Status || tr.state || 'N/A'}</li>`;
+          });
+          summaryHtml += `</ul>`;
+        } else {
+          summaryHtml += `<p>No trend reports found in this LRE project.</p>`;
+        }
+      }
+
+      if (data.trendReport) {
+        const tr = data.trendReport;
+        summaryHtml += `<h3>📊 LRE Trend Report Details</h3>`;
+        summaryHtml += `<ul>`;
+        summaryHtml += `<li><strong>ID:</strong> ${tr.ID || tr.id}</li>`;
+        summaryHtml += `<li><strong>Name:</strong> ${tr.Name || tr.name}</li>`;
+        summaryHtml += `<li><strong>Status:</strong> ${tr.Status || tr.state || 'N/A'}</li>`;
+        if (tr.TrendReportAssociatedRunList) {
+          const runIdList = tr.TrendReportAssociatedRunList.map(r => r.RunID || r.runId || r);
+          summaryHtml += `<li><strong>Associated Runs:</strong> ${runIdList.length > 0 ? runIdList.join(", ") : 'None'}</li>`;
+        }
+        summaryHtml += `</ul>`;
+      }
+
+      if (data.simulatedTrendReports) {
+        summaryHtml += `<h3>📊 Simulated Trend Reports (Mock DB)</h3>`;
+        if (Array.isArray(data.simulatedTrendReports) && data.simulatedTrendReports.length > 0) {
+          summaryHtml += `<ul>`;
+          data.simulatedTrendReports.forEach(tr => {
+            summaryHtml += `<li><strong>${tr.name}</strong> (ID: ${tr.id}) - State: <span style="color:${tr.state === 'Completed' ? '#1e8e3e' : '#e28743'};font-weight:bold;">${tr.state}</span> | Associated Runs: [${tr.associatedRuns.join(", ") || 'none'}]</li>`;
+          });
+          summaryHtml += `</ul>`;
+        } else {
+          summaryHtml += `<p>No simulated trend reports currently exist.</p>`;
+        }
+      }
+
+      if (data.simulatedTrendReport) {
+        const tr = data.simulatedTrendReport;
+        summaryHtml += `<h3>📊 Simulated Trend Report Details</h3>`;
+        summaryHtml += `<ul>`;
+        summaryHtml += `<li><strong>ID:</strong> ${tr.id}</li>`;
+        summaryHtml += `<li><strong>Name:</strong> ${tr.name}</li>`;
+        summaryHtml += `<li><strong>State:</strong> <span style="font-weight:bold; color:${tr.state === 'Completed' ? '#1e8e3e' : '#e28743'};">${tr.state}</span></li>`;
+        summaryHtml += `<li><strong>Associated Run IDs:</strong> [${tr.associatedRuns.join(", ") || 'None'}]</li>`;
+        if (tr.lastCalculated) summaryHtml += `<li><strong>Last Calculation Time:</strong> ${tr.lastCalculated}</li>`;
+        summaryHtml += `</ul>`;
+        if (tr.state !== 'Completed') {
+          summaryHtml += `<p style="font-size:13px; color:#555; background:#fff3cd; padding:8px 12px; border-radius:6px; border:1px solid #ffeeba; margin-top:10px;">💡 Tip: You can query <code>simulate calculate trend report ${tr.id}</code> to execute calculation tasks!</p>`;
+        }
       }
 
       return summaryHtml;

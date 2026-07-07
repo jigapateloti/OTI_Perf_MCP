@@ -12,10 +12,27 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
-// In-memory store for simulated run states
+// In-memory store for simulated run and trend report states
 const simulatedState = {
     counter: 77701,
-    runs: {}
+    runs: {},
+    trendReportsCounter: 3003,
+    trendReports: {
+        3001: {
+            id: 3001,
+            name: "Core Services Performance Trend",
+            associatedRuns: [77701, 77702],
+            state: "Completed",
+            lastCalculated: "2026-06-30T10:00:00.000Z"
+        },
+        3002: {
+            id: 3002,
+            name: "Microservices Scalability Report",
+            associatedRuns: [],
+            state: "Draft",
+            lastCalculated: null
+        }
+    }
 };
 
 function parseCommand(prompt) {
@@ -29,6 +46,65 @@ function parseCommand(prompt) {
     const hoursMatch = text.match(/(\d+)\s*(?:hours|hrs)/);
     const minutesMatch = text.match(/(\d+)\s*(?:minutes|mins)/);
     const countMatch = text.match(/(?:last|recent|top)\s*(\d+)\s*runs?/);
+
+    // === Trend Reports Commands (Simulation and Real) ===
+
+    if (text.startsWith("simulate trend reports") || text === "simulate trend report list") {
+        return { action: "simulateTrendReports" };
+    }
+
+    const simCreateTrendMatch = text.match(/simulate\s+create\s+trend\s+report\s+(.+)/);
+    if (simCreateTrendMatch) {
+        return { action: "simulateCreateTrendReport", name: simCreateTrendMatch[1].trim() };
+    }
+
+    const simCalcTrendMatch = text.match(/simulate\s+calculate\s+trend\s+report\s+(\d+)/) || text.match(/simulate\s+calculate\s+trend\s+(\d+)/);
+    if (simCalcTrendMatch) {
+        return { action: "simulateCalculateTrendReport", id: Number(simCalcTrendMatch[1]) };
+    }
+
+    const simTrendDetailsMatch = text.match(/simulate\s+trend\s+report\s+(\d+)/);
+    if (simTrendDetailsMatch) {
+        return { action: "simulateTrendReportDetails", id: Number(simTrendDetailsMatch[1]) };
+    }
+
+    // Real Trend Report commands
+    const assocMatch = text.match(/(?:associate|add)\s+runs?\s+([\d,\s]+)\s+to\s+trend\s+report\s+(\d+)/);
+    if (assocMatch) {
+        const runIds = assocMatch[1].split(/[\s,]+/).map(s => s.trim()).filter(Boolean).map(Number);
+        return { action: "associateRuns", trendReportId: Number(assocMatch[2]), runIds };
+    }
+
+    const disMatch = text.match(/(?:disassociate|remove)\s+runs?\s+([\d,\s]+)\s+from\s+trend\s+report\s+(\d+)/);
+    if (disMatch) {
+        const runIds = disMatch[1].split(/[\s,]+/).map(s => s.trim()).filter(Boolean).map(Number);
+        return { action: "disassociateRuns", trendReportId: Number(disMatch[2]), runIds };
+    }
+
+    const calcTrendMatch = text.match(/calculate\s+trend\s+report\s+(\d+)/) || text.match(/calculate\s+trend\s+(\d+)/);
+    if (calcTrendMatch) {
+        return { action: "calculateTrendReport", id: Number(calcTrendMatch[1]) };
+    }
+
+    const createTrendMatch = text.match(/create\s+trend\s+report\s+(.+)/);
+    if (createTrendMatch) {
+        return { action: "createTrendReport", name: createTrendMatch[1].trim() };
+    }
+
+    const deleteTrendMatch = text.match(/delete\s+trend\s+report\s+(\d+)/);
+    if (deleteTrendMatch) {
+        return { action: "deleteTrendReport", id: Number(deleteTrendMatch[1]) };
+    }
+
+    const listTrendMatch = text.match(/(?:get|list|show)\s+trend\s+reports/);
+    if (listTrendMatch || text === "trend reports") {
+        return { action: "getTrendReports" };
+    }
+
+    const getTrendDetailMatch = text.match(/(?:get|show|details)\s+trend\s+report\s+(\d+)/) || text.match(/trend\s+report\s+(\d+)/);
+    if (getTrendDetailMatch && !text.includes("runs") && !text.includes("associate") && !text.includes("calculate") && !text.includes("delete")) {
+        return { action: "getTrendReportDetails", id: Number(getTrendDetailMatch[1]) };
+    }
 
     // Simulation Workflow Modes
     if (text.startsWith("simulate run") || text.startsWith("simulate start")) {
@@ -174,6 +250,132 @@ app.post("/command", async (req, res) => {
                     message: `Simulated performance metrics generated. Obtained sample HTML execution results package for simulated Run ID ${parsed.runId}.`,
                     savedTo: `LRE-Report-${parsed.runId}-SIMULATED.zip`,
                     simulationActive: true
+                };
+                break;
+            }
+
+            // === Simulated Trend Reports ===
+            case "simulateTrendReports": {
+                const list = Object.values(simulatedState.trendReports);
+                result = {
+                    message: `[Simulated] Found ${list.length} total trend reports in simulation database.`,
+                    simulatedTrendReports: list
+                };
+                break;
+            }
+
+            case "simulateCreateTrendReport": {
+                const newId = simulatedState.trendReportsCounter++;
+                const newReport = {
+                    id: newId,
+                    name: parsed.name,
+                    associatedRuns: [],
+                    state: "Draft",
+                    lastCalculated: null
+                };
+                simulatedState.trendReports[newId] = newReport;
+                result = {
+                    message: `[Simulated] Created trend report "${parsed.name}" successfully with ID ${newId}.`,
+                    simulatedTrendReport: newReport
+                };
+                break;
+            }
+
+            case "simulateTrendReportDetails": {
+                const report = simulatedState.trendReports[parsed.id];
+                if (!report) {
+                    result = {
+                        success: false,
+                        message: `[Simulated] Trend report ID ${parsed.id} not found.`
+                    };
+                    break;
+                }
+                result = {
+                    message: `[Simulated] Retrieved trend report details for ID ${parsed.id}.`,
+                    simulatedTrendReport: report
+                };
+                break;
+            }
+
+            case "simulateCalculateTrendReport": {
+                const report = simulatedState.trendReports[parsed.id];
+                if (!report) {
+                    result = {
+                        success: false,
+                        message: `[Simulated] Trend report ID ${parsed.id} not found.`
+                    };
+                    break;
+                }
+                report.state = "Completed";
+                report.lastCalculated = new Date().toISOString();
+                result = {
+                    message: `[Simulated] Calculation completed for trend report ID ${parsed.id} ("${report.name}").`,
+                    simulatedTrendReport: report
+                };
+                break;
+            }
+
+            // === Real Trend Reports ===
+            case "getTrendReports": {
+                const reports = await client.getTrendReports();
+                result = {
+                    message: Array.isArray(reports)
+                        ? `Successfully retrieved ${reports.length} trend reports from LRE.`
+                        : "Fetch trend reports completed successfully.",
+                    trendReports: reports
+                };
+                break;
+            }
+
+            case "getTrendReportDetails": {
+                const report = await client.getTrendReportDetails(parsed.id);
+                result = {
+                    message: `Successfully retrieved trend report details for ID ${parsed.id}.`,
+                    trendReport: report
+                };
+                break;
+            }
+
+            case "createTrendReport": {
+                const entry = await client.createTrendReport(parsed.name);
+                result = {
+                    message: `Successfully created trend report "${parsed.name}".`,
+                    trendReport: entry
+                };
+                break;
+            }
+
+            case "deleteTrendReport": {
+                await client.deleteTrendReport(parsed.id);
+                result = {
+                    message: `Successfully deleted trend report with ID ${parsed.id}.`
+                };
+                break;
+            }
+
+            case "associateRuns": {
+                const resData = await client.associateRunsToTrendReport(parsed.trendReportId, parsed.runIds);
+                result = {
+                    message: `Successfully associated run(s) ${parsed.runIds.join(", ")} to trend report ID ${parsed.trendReportId}.`,
+                    rawResponse: resData
+                };
+                break;
+            }
+
+            case "disassociateRuns": {
+                const resData = await client.disassociateRunsFromTrendReport(parsed.trendReportId, parsed.runIds);
+                result = {
+                    message: `Successfully disassociated run(s) ${parsed.runIds.join(", ")} from trend report ID ${parsed.trendReportId}.`,
+                    rawResponse: resData
+                };
+                break;
+            }
+
+            case "calculateTrendReport": {
+                const resData = await client.calculateTrendReport(parsed.id);
+                result = {
+                    message: `Calculation triggered successfully for trend report ID ${parsed.id}.`,
+                    rawResponse: resData
                 };
                 break;
             }
