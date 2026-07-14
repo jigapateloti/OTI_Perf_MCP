@@ -1,22 +1,57 @@
 # LRE Project
 
-## Environment variables
+## Quick Start Guide for New Users
 
-Add a `.env` file at the repository root with the following variables (replace values as appropriate):
+Follow these simple, step-by-step instructions to get the LRE Chat Command application running on your computer.
 
+### Step 1: Install Visual Studio Code (VS Code)
+1. Go to the official VS Code download website: [https://code.visualstudio.com/](https://code.visualstudio.com/Download)
+2. Download the installer for your operating system (Windows, macOS, or Linux).
+3. Run the installer and follow the prompt setup wizard:
+   - Accept the license agreement.
+   - Keep the default installation directory.
+   - (Highly Recommended) Check all of the boxes on the **Additional Tasks** screen:
+     - *Create a desktop icon*
+     - *Add "Open with Code" action to Windows Explorer file context menu*
+     - *Add "Open with Code" action to Windows Explorer directory context menu*
+     - *Register Code as an editor for supported file types*
+     - *Add to PATH (requires shell restart)*
+4. Click **Install**, wait for completion, and click **Finish** to open VS Code.
+
+### Step 2: Install Node.js
+This application runs on Node.js, which needs to be installed on your system.
+1. Download Node.js from the official website: [https://nodejs.org/](https://nodejs.org/) (Select the **LTS (Long Term Support)** version, e.g., 20.x or 22.x).
+2. Run the installer and click **Next** through the setup wizard (make sure the option to "Add to PATH" is enabled, which it is by default).
+3. Once the installation completes, restart VS Code to apply Node.js environmental paths.
+
+### Step 3: Open the Project in VS Code
+1. Open VS Code.
+2. Select **File** > **Open Folder...** from the top menu, then browse to and pick the `LRE 26.1` workspace folder.
+3. Open VS Code's integrated terminal (Select **Terminal** > **New Terminal** or press `Ctrl + \``).
+
+### Step 4: Install Project Dependencies
+In the VS Code terminal that you opened, run the following command to download and install all required Node.js packages (such as `express`, `axios`, and others listed in `package.json`):
+
+```bash
+npm install
 ```
-LRE_BASE_URL=https://your-lre-server
-LRE_USERNAME=your-username
-LRE_PASSWORD=your-password
 
-LRE_DOMAIN={DEFAULT}
+### Step 5: Configure Environment Variables
+You must configure your LRE connection details so the agent can authenticate.
+1. Duplicate or copy the `.env.example` file and rename the new copy to `.env` in the root folder of this project.
+2. Open the `.env` file and replace the placeholder credentials with your actual active LRE server parameters:
+
+```env
+LRE_BASE_URL=https://your-lre-server-url
+LRE_USERNAME=your-username-key
+LRE_PASSWORD=your-password-key
+
+LRE_DOMAIN={DOMAIN_NAME}
 LRE_PROJECT={PROJECT_NAME}
 TENANT_ID={TENANT_ID}
 ```
 
-Notes:
-- Keep `.env` out of version control (add to `.gitignore`).
-- `LRE_DOMAIN`, `LRE_PROJECT`, and `TENANT_ID` are used by the SDK to scope requests to the correct domain/project/tenant.
+*Note: The `.env` file contains sensitive information and is ignored by Git automatically (configured in `.gitignore`).*
 
 ---
 
@@ -112,32 +147,40 @@ project/
 
 ## **Setup Instructions**
 
-### **1. Install dependencies**
-Run this once:
+### **1. Install Dependencies**
+Open your VS Code terminal and install the project dependencies by running:
 
-```
+```bash
 npm install
 ```
 
 ---
 
 ### **2. Configure `.env`**
-Your `.env` file should contain:
+Establish your environment configuration:
+1. Copy `.env.example` and rename it to `.env` in the project root.
+2. Open `.env` and configure your LRE server details:
 
-```
+```env
 LRE_BASE_URL=https://your-lre-server
 LRE_USERNAME=your-username
 LRE_PASSWORD=your-password
 
-Alternatively copy the provided `.env.example` and edit the values. The repository includes a `.env.example` listing all supported keys (e.g. `LRE_BASE_URL`, `LRE_DOMAIN`, `LRE_PROJECT`, `TENANT_ID`, `LRE_USERNAME`, `LRE_PASSWORD`).
+LRE_DOMAIN=DEFAULT
+LRE_PROJECT=CICD
+TENANT_ID=6
 ```
 
 ---
 
 ### **3. Start the server**
-Run:
+Start the Node.js server with either of the following commands:
 
+```bash
+npm start
 ```
+or 
+```bash
 node agent.js
 ```
 
