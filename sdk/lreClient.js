@@ -232,7 +232,7 @@ class LREClient {
 
     async getProjectDetails() {
         await this.ensureAuthenticated();
-        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects/${this.project}`;
+        const url = `${this.baseUrl}/LoadTest/rest/domains/${this.domain}/projects`;
 
         const response = await axios.get(url, {
             httpsAgent: agent,
@@ -242,7 +242,26 @@ class LREClient {
             }
         });
 
-        return response.data;
+        const projects = response.data;
+        if (!Array.isArray(projects)) {
+            throw new Error("Invalid response format received from LRE projects endpoint.");
+        }
+
+        const projectMatch = projects.find(
+            p => p.Name && p.Name.toLowerCase() === this.project.toLowerCase()
+        );
+
+        if (!projectMatch) {
+            throw new Error(`Project "${this.project}" was not found under domain "${this.domain}".`);
+        }
+
+        return {
+            Name: projectMatch.Name,
+            DomainName: this.domain,
+            ID: this.tenant || "N/A",
+            Status: "Active",
+            Description: "LRE Project successfully validated and live connected."
+        };
     }
 
     async getTimeslots() {

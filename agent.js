@@ -54,7 +54,7 @@ app.listen(3000, async () => {
         console.warn("LRE Startup authentication warning:", err.message);
     }
 
-    // Keep session hydrated and print status logs every 60 seconds (optimized from 10 seconds to reduce overhead)
+    // Keep session hydrated and print status logs every 60 seconds
     setInterval(async () => {
         const timestamp = new Date().toISOString();
         try {
